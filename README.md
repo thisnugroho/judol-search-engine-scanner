@@ -1,5 +1,10 @@
 # Google Custom Search API
 
+## Security Note
+
+- Never commit secrets (API keys, service account JSON, or `.env` files) into the repository.
+- Keep credentials in local `.env` files or a secure secrets manager.
+
 ## Setup
 
 ### Backend
