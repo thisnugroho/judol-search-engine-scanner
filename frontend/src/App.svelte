@@ -17,7 +17,12 @@
   const recaptchaSiteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
   const keywordHighlightRegex = /(gacor|slot777|slot888|casino|poker|togel|maxwin|zeus)/gi;
   const keywordTestRegex = /(gacor|slot777|slot888|casino|poker|togel|maxwin|zeus)/i;
+  const contactHref = "mailto:contact@genbucyber.com";
+  const contactLabel = "Kirim Email";
   let recaptchaReady = false;
+  let recaptchaWidgetId = null;
+  let showCtaModal = false;
+  let ctaTimer = null;
 
   function loadScript(src) {
     return new Promise((resolve, reject) => {
@@ -32,19 +37,29 @@
   }
 
   async function loadRecaptchaScript() {
-    if (window.grecaptcha) return;
+    if (window.grecaptcha && typeof window.grecaptcha.render === "function") {
+      recaptchaReady = true;
+      return;
+    }
 
+    window.__recaptchaOnload = () => {
+      recaptchaReady = true;
+      renderRecaptcha();
+    };
+
+    const params = "onload=__recaptchaOnload&render=explicit";
     try {
-      await loadScript("https://www.google.com/recaptcha/api.js?render=explicit");
+      await loadScript(`https://www.google.com/recaptcha/api.js?${params}`);
     } catch (err) {
-      await loadScript("https://www.recaptcha.net/recaptcha/api.js?render=explicit");
+      await loadScript(`https://www.recaptcha.net/recaptcha/api.js?${params}`);
     }
   }
 
   function renderRecaptcha() {
-    if (!window.grecaptcha || !recaptchaSiteKey) return;
+    if (!window.grecaptcha || typeof window.grecaptcha.render !== "function" || !recaptchaSiteKey) return;
+    if (recaptchaWidgetId !== null) return;
 
-    window.grecaptcha.render("recaptcha-container", {
+    recaptchaWidgetId = window.grecaptcha.render("recaptcha-container", {
       sitekey: recaptchaSiteKey,
       callback: (token) => {
         captchaToken = token;
@@ -139,6 +154,16 @@
       results = (data.results || []).filter((item) =>
         keywordTestRegex.test(item?.snippet || "")
       );
+      if (ctaTimer) {
+        clearTimeout(ctaTimer);
+      }
+      if (results.length > 0) {
+        ctaTimer = setTimeout(() => {
+          showCtaModal = true;
+        }, 900);
+      } else {
+        showCtaModal = false;
+      }
     } catch (err) {
       console.error(err);
       error = err.message || "Koneksi gagal. Pastikan backend berjalan.";
@@ -172,20 +197,7 @@
             Tampilkan indikasi yang relevan, bantu cek dampak, dan beri gambaran langkah awal yang bisa diambil.
             Tetap ringkas, tetap jelas, supaya keputusan bisa dibuat lebih cepat.
           </p>
-          <div class="mt-6 flex flex-wrap gap-3">
-            <div class="stat-pill">
-              <span class="text-ink/60">Waktu respon</span>
-              <strong>~3-6 detik</strong>
-            </div>
-            <div class="stat-pill">
-              <span class="text-ink/60">Cakupan</span>
-              <strong>Hasil pencarian</strong>
-            </div>
-            <div class="stat-pill">
-              <span class="text-ink/60">Sumber</span>
-              <strong>Search API</strong>
-            </div>
-          </div>
+          
         </div>
 
         <div class="glass-card" in:fly={{ y: 12, duration: 600 }}>
@@ -259,6 +271,50 @@
         </div>
       </header>
 
+      {#if showCtaModal && searched && !loading && !error && results.length > 0}
+        <div class="modal">
+          <div class="modal-card cta-modal" in:slide={{ duration: 260 }}>
+            <div class="cta-modal-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path
+                  d="M12 3l8 4v6c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V7l8-4z"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-width="2"
+                />
+              </svg>
+            </div>
+            <div class="cta-modal-body">
+              <h3 class="cta-modal-title">Butuh bantuan pengamanan?</h3>
+              <p class="cta-modal-copy">
+                Hasil scan terindikasi konten judol. Audit dan pembersihan cepat membantu menurunkan risiko lanjutan.
+              </p>
+              <p class="cta-modal-note">
+                Catatan: tetap lakukan verifikasi manual. Sebagian temuan bisa saja false positive.
+              </p>
+              <div class="cta-modal-actions">
+                <button class="cta-cancel" on:click={() => (showCtaModal = false)}>Nanti dulu</button>
+                <a class="cta-primary" href={contactHref}>
+                  <span class="cta-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                      <path
+                        d="M4 6h16v12H4zM4 7l8 6 8-6"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-width="2"
+                      />
+                    </svg>
+                  </span>
+                  {contactLabel}
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      {/if}
+
       {#if searched && !loading && !error}
         <section class="mt-14" in:fade={{ delay: 100 }}>
           <div class="mb-6 rounded-2xl border border-slate-300/80 bg-slate-100/80 px-4 py-3 text-sm text-slate-800">
@@ -274,6 +330,43 @@
               <span class="block text-rose-900/80">
                 Ditemukan {results.length} hasil yang memuat keyword mencurigakan.
               </span>
+            </div>
+            <div class="mb-6 rounded-2xl bg-emerald-600 text-white px-4 py-3 text-sm">
+              <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex items-center gap-3">
+                  <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-width="2"
+                      />
+                    </svg>
+                  </span>
+                  <div>
+                    <strong>Butuh bantuan cepat?</strong>
+                    <div class="text-white/85">
+                      Tim security siap audit, bersihkan konten, dan bantu pemulihan reputasi domain.
+                    </div>
+                  </div>
+                </div>
+                <a class="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-emerald-700" href={contactHref}>
+                  <span class="inline-flex h-4 w-4 items-center justify-center">
+                    <svg viewBox="0 0 24 24" class="h-4 w-4">
+                      <path
+                        d="M4 6h16v12H4zM4 7l8 6 8-6"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-width="2"
+                      />
+                    </svg>
+                  </span>
+                  {contactLabel}
+                </a>
+              </div>
             </div>
           {:else}
             <div class="mb-6 rounded-2xl border border-emerald-500/30 bg-emerald-100/70 px-4 py-3 text-sm text-emerald-900">
