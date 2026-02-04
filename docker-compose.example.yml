@@ -1,0 +1,21 @@
+services:
+  backend:
+    image: ghcr.io/thisnugroho/judol-search-engine-scanner-backend:main
+    ports:
+      - "5151:5151"
+    environment:
+      GOOGLE_API_KEY: "your_google_api_key"
+      GOOGLE_CSE_ID: "your_search_engine_id"
+      ENABLE_CAPTCHA: "true"
+      RECAPTCHA_SECRET_KEY: "your_recaptcha_secret"
+      FRONTEND_ORIGINS: "http://localhost:5173"
+
+  frontend:
+    image: ghcr.io/thisnugroho/judol-search-engine-scanner-frontend:main
+    ports:
+      - "5173:80"
+    environment:
+      VITE_ENABLE_CAPTCHA: "true"
+      VITE_RECAPTCHA_SITE_KEY: "your_recaptcha_site_key"
+    depends_on:
+      - backend
