@@ -1,0 +1,6 @@
+google-api-python-client
+python-dotenv
+flask
+flask-limiter
+flask-cors
+gunicorn
