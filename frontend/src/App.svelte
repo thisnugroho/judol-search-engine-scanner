@@ -22,7 +22,16 @@
   let recaptchaReady = false;
   let recaptchaWidgetId = null;
   let showCtaModal = false;
-  let ctaTimer = null;
+  let shouldShowCta = false;
+  let hasShownCta = false;
+  let hasScrolled = false;
+
+  function isAtPageBottom() {
+    const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+    const viewport = window.innerHeight || document.documentElement.clientHeight || 0;
+    const fullHeight = document.documentElement.scrollHeight || document.body.scrollHeight || 0;
+    return scrollY + viewport >= fullHeight - 2;
+  }
 
   function loadScript(src) {
     return new Promise((resolve, reject) => {
@@ -94,6 +103,23 @@
     }
   });
 
+  onMount(() => {
+    const onScroll = () => {
+      const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      if (scrollY > 0) {
+        hasScrolled = true;
+      }
+      if (!shouldShowCta || hasShownCta || loading || error) return;
+      if (hasScrolled && isAtPageBottom()) {
+        showCtaModal = true;
+        hasShownCta = true;
+      }
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  });
+
   function initiateSearch() {
     if (!domain.trim()) {
       error = "Tulis domain yang mau dicek dulu.";
@@ -131,6 +157,10 @@
     results = [];
     searched = true;
     searchedDomain = domain;
+    shouldShowCta = false;
+    hasShownCta = false;
+    showCtaModal = false;
+    hasScrolled = false;
 
     try {
       const response = await fetch("http://localhost:5151/search", {
@@ -154,15 +184,11 @@
       results = (data.results || []).filter((item) =>
         keywordTestRegex.test(item?.snippet || "")
       );
-      if (ctaTimer) {
-        clearTimeout(ctaTimer);
-      }
       if (results.length > 0) {
-        ctaTimer = setTimeout(() => {
-          showCtaModal = true;
-        }, 900);
+        shouldShowCta = true;
       } else {
         showCtaModal = false;
+        shouldShowCta = false;
       }
     } catch (err) {
       console.error(err);

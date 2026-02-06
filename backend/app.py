@@ -1,9 +1,11 @@
 import os
 import json
 import re
+import sqlite3
 import urllib.request
 import urllib.error
 import urllib.parse
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -32,6 +34,37 @@ limiter = Limiter(
 API_KEY = os.getenv('GOOGLE_API_KEY')
 CSE_ID = os.getenv('GOOGLE_CSE_ID')
 KEYWORDS = ["gacor", "slot777", "slot888", "togel", "casino", "poker", "maxwin", "zeus"]
+DB_PATH = os.getenv('DB_PATH', 'data.sqlite3')
+
+def init_db():
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS searches (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                visitor_ip TEXT NOT NULL,
+                domain TEXT NOT NULL,
+                is_affected INTEGER NOT NULL,
+                results TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        """)
+
+def _get_client_ip():
+    forwarded = request.headers.get('X-Forwarded-For', '')
+    if forwarded:
+        return forwarded.split(',')[0].strip()
+    return request.remote_addr or ''
+
+def save_search(visitor_ip, domain, is_affected, results):
+    created_at = datetime.now(timezone.utc).isoformat()
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute(
+            """
+            INSERT INTO searches (visitor_ip, domain, is_affected, results, created_at)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (visitor_ip, domain, 1 if is_affected else 0, json.dumps(results), created_at)
+        )
 
 def is_valid_domain(domain):
     pattern = r'^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$'
@@ -125,6 +158,8 @@ def calculate_reputation_score(results):
         'checks': checks
     }
 
+init_db()
+
 @app.route('/search', methods=['POST'])
 @limiter.limit("10 per minute")
 def search_api():
@@ -192,6 +227,10 @@ def search_api():
         
         # Calculate reputation based on findings
         reputation_report = calculate_reputation_score(results)
+
+        visitor_ip = _get_client_ip()
+        is_affected = len(results) > 0
+        save_search(visitor_ip, domain, is_affected, results)
         
         return jsonify({
             'results': results,
