@@ -4,8 +4,13 @@ services:
       context: ./backend
     ports:
       - "5151:5151"
-    env_file:
-      - ./backend/.env
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GOOGLE_CSE_ID=${GOOGLE_CSE_ID}
+      - FRONTEND_ORIGINS=${FRONTEND_ORIGINS}
+      - ENABLE_CAPTCHA=${ENABLE_CAPTCHA}
+      - RECAPTCHA_SECRET_KEY=${RECAPTCHA_SECRET_KEY}
+      - DB_PATH=${DB_PATH}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5151/health', timeout=2)"]
       interval: 30s

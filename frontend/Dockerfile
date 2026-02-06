@@ -1,9 +1,9 @@
-FROM node:20-alpine AS build
+FROM oven/bun:1.1.30-alpine AS build
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 
 COPY . ./
 
@@ -12,7 +12,7 @@ ARG VITE_RECAPTCHA_SITE_KEY
 ENV VITE_ENABLE_CAPTCHA=${VITE_ENABLE_CAPTCHA}
 ENV VITE_RECAPTCHA_SITE_KEY=${VITE_RECAPTCHA_SITE_KEY}
 
-RUN npm run build
+RUN bun run build
 
 FROM nginx:alpine
 
