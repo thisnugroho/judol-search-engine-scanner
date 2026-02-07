@@ -22,8 +22,8 @@ ARG APP_GID=1009
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-RUN mkdir -p /var/cache/nginx /var/run /var/log/nginx \
-  && chown -R ${APP_UID}:${APP_GID} /var/cache/nginx /var/run /var/log/nginx /usr/share/nginx/html
+RUN mkdir -p /var/cache/nginx /var/run /var/log/nginx /run \
+  && chown -R ${APP_UID}:${APP_GID} /var/cache/nginx /var/run /var/log/nginx /run /usr/share/nginx/html
 
 EXPOSE 8080
 
