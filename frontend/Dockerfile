@@ -16,8 +16,8 @@ RUN bun run build
 
 FROM nginx:alpine
 
-ARG APP_UID=1000
-ARG APP_GID=1000
+ARG APP_UID=1008
+ARG APP_GID=1009
 
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
