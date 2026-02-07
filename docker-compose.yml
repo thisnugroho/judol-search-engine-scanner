@@ -10,7 +10,9 @@ services:
       - FRONTEND_ORIGINS=${FRONTEND_ORIGINS}
       - ENABLE_CAPTCHA=${ENABLE_CAPTCHA}
       - RECAPTCHA_SECRET_KEY=${RECAPTCHA_SECRET_KEY}
-      - DB_PATH=${DB_PATH}
+      - DB_PATH=/data/data.sqlite3
+    volumes:
+      - ./backend/data:/data
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5151/health', timeout=2)"]
       interval: 30s
@@ -23,8 +25,11 @@ services:
       args:
         VITE_ENABLE_CAPTCHA: ${VITE_ENABLE_CAPTCHA}
         VITE_RECAPTCHA_SITE_KEY: ${VITE_RECAPTCHA_SITE_KEY}
+        APP_UID: ${APP_UID:-1000}
+        APP_GID: ${APP_GID:-1000}
     ports:
-      - "5173:80"
+      - "5173:8080"
+    user: "${APP_UID:-1000}:${APP_GID:-1000}"
     depends_on:
       backend:
         condition: service_healthy

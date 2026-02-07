@@ -16,9 +16,17 @@ RUN bun run build
 
 FROM nginx:alpine
 
+ARG APP_UID=1000
+ARG APP_GID=1000
+
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-EXPOSE 80
+RUN mkdir -p /var/cache/nginx /var/run /var/log/nginx \
+  && chown -R ${APP_UID}:${APP_GID} /var/cache/nginx /var/run /var/log/nginx /usr/share/nginx/html
+
+EXPOSE 8080
+
+USER ${APP_UID}:${APP_GID}
 
 CMD ["nginx", "-g", "daemon off;"]

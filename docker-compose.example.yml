@@ -9,6 +9,9 @@ services:
       ENABLE_CAPTCHA: "true"
       RECAPTCHA_SECRET_KEY: "your_recaptcha_secret"
       FRONTEND_ORIGINS: "http://localhost:5173"
+      DB_PATH: "/data/data.sqlite3"
+    volumes:
+      - ./backend/data:/data
 
   frontend:
     image: ghcr.io/thisnugroho/judol-search-engine-scanner-frontend:main
